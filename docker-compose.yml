@@ -9,7 +9,8 @@ volumes:
   airflow-data:
   postgres-data:
   shared-artifacts:
-
+  vllm-models:
+  ollama-models:
 services:
 
   # ─── MLflow ───────────────────────────────────────
@@ -141,5 +142,34 @@ services:
       - airflow-data:/opt/airflow
       - shared-artifacts:/shared/artifacts
     command: scheduler
+    networks:
+      - vibeops-network
+
+# ─── vLLM ─────────────────────────────────────────
+#  vllm:
+ #   image: vllm/vllm-openai:latest
+  #  container_name: vllm
+   # ports:
+    #  - "8001:8000"
+    #volumes:
+     # - vllm-models:/root/.cache/huggingface
+    #command: >
+     # --model Qwen/Qwen2.5-1.5B-Instruct
+      #--dtype float32
+      #--max-model-len 2048
+      #--gpu-memory-utilization 0
+    #environment:
+     # - HF_TOKEN=
+    #networks:
+     # - vibeops-network
+
+# ─── Ollama ───────────────────────────────────────
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
     networks:
       - vibeops-network
