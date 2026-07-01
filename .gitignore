@@ -25,3 +25,5 @@ airflow.cfg
 *.tfstate.backup
 .terraform/
 *.tfvars
+model.pkl
+inspect_model.py

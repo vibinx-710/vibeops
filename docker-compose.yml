@@ -1,5 +1,3 @@
-version: '3.8'
-
 networks:
   vibeops-network:
     driver: bridge
@@ -9,6 +7,8 @@ volumes:
   prometheus-data:
   grafana-data:
   airflow-data:
+  postgres-data:
+  shared-artifacts:
 
 services:
 
@@ -16,16 +16,19 @@ services:
   mlflow:
     image: ghcr.io/mlflow/mlflow:v2.13.0
     container_name: mlflow
+    user: "0"
     ports:
       - "5000:5000"
     volumes:
       - mlflow-data:/mlflow
+      - shared-artifacts:/shared/artifacts
     command: >
       mlflow server
       --host 0.0.0.0
       --port 5000
       --backend-store-uri sqlite:///mlflow/mlflow.db
-      --default-artifact-root /mlflow/artifacts
+      --default-artifact-root /shared/artifacts
+    
     networks:
       - vibeops-network
 
@@ -61,8 +64,82 @@ services:
     container_name: fastapi
     ports:
       - "8000:8000"
+    volumes:
+      - shared-artifacts:/shared/artifacts
     depends_on:
       - mlflow
     networks:
       - vibeops-network
 
+  # ─── PostgreSQL for Airflow ───────────────────────
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow123
+      - POSTGRES_DB=airflow
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - vibeops-network
+
+  # ─── Airflow ──────────────────────────────────────
+  airflow-init:
+    build: ./services/airflow
+    container_name: airflow-init
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow123@postgres/airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - _AIRFLOW_DB_MIGRATE=true
+      - _AIRFLOW_WWW_USER_CREATE=true
+      - _AIRFLOW_WWW_USER_USERNAME=vibeops
+      - _AIRFLOW_WWW_USER_PASSWORD=vibeops123
+    volumes:
+      - ./services/airflow/dags:/opt/airflow/dags
+      - airflow-data:/opt/airflow
+      - shared-artifacts:/shared/artifacts
+    command: version
+    networks:
+      - vibeops-network
+
+  airflow-webserver:
+    build: ./services/airflow
+    container_name: airflow-webserver
+    depends_on:
+      - airflow-init
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow123@postgres/airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+    volumes:
+      - ./services/airflow/dags:/opt/airflow/dags
+      - airflow-data:/opt/airflow
+      - shared-artifacts:/shared/artifacts
+    ports:
+      - "8080:8080"
+    command: webserver
+    networks:
+      - vibeops-network
+
+  airflow-scheduler:
+    build: ./services/airflow
+    container_name: airflow-scheduler
+    depends_on:
+      - airflow-init
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow123@postgres/airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+    volumes:
+      - ./services/airflow/dags:/opt/airflow/dags
+      - airflow-data:/opt/airflow
+      - shared-artifacts:/shared/artifacts
+    command: scheduler
+    networks:
+      - vibeops-network
