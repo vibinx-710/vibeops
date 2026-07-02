@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VibeX — AI Predictive Maintenance</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0a0a0f url('/static/bg.png') center/cover fixed;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.0);
+            backdrop-filter: blur(3px);
+            z-index: 0;
+        }
+        .container { width: 100%; max-width: 800px; position: relative; z-index: 1; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .header h1 {
+            font-size: 3rem; font-weight: 800;
+            background: linear-gradient(135deg, #00d4ff, #7b2ff7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 6px;
+        }
+        .header p { color: #555; margin-top: 10px; font-size: 0.8rem; letter-spacing: 3px; text-transform: uppercase; }
+        .header .tagline { color: #333; font-size: 0.7rem; letter-spacing: 2px; margin-top: 4px; text-transform: uppercase; }
+        .card {
+            background: rgba(10, 10, 20, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px; padding: 32px; margin-bottom: 24px;
+            backdrop-filter: blur(10px);
+        }
+        .card h2 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 3px; color: #333; margin-bottom: 24px; border-bottom: 1px solid #111; padding-bottom: 12px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .input-group { display: flex; flex-direction: column; gap: 6px; }
+        .input-group label { font-size: 0.72rem; color: #555; text-transform: uppercase; letter-spacing: 1.5px; }
+        .input-group input {
+            background: rgba(0,0,0,0.5); border: 1px solid #1a1a2e;
+            border-radius: 8px; padding: 12px 16px; color: #c0c0c0;
+            font-size: 1rem; outline: none; transition: border-color 0.2s;
+        }
+        .input-group input:focus { border-color: #00d4ff; }
+        .input-group span { font-size: 0.7rem; color: #2a2a3a; }
+        .btn {
+            width: 100%; padding: 16px;
+            background: linear-gradient(135deg, #00d4ff, #7b2ff7);
+            border: none; border-radius: 8px; color: white;
+            font-size: 0.85rem; font-weight: 700; letter-spacing: 3px;
+            text-transform: uppercase; cursor: pointer; margin-top: 24px;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .result { display: none; }
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 10px 24px; border-radius: 100px;
+            font-size: 0.8rem; font-weight: 700; letter-spacing: 3px;
+            text-transform: uppercase; margin-bottom: 24px;
+        }
+        .status-ok { background: rgba(0,255,136,0.08); color: #00ff88; border: 1px solid rgba(0,255,136,0.2); }
+        .status-fail { background: rgba(255,50,50,0.08); color: #ff4444; border: 1px solid rgba(255,50,50,0.2); }
+        .prob-number { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #00d4ff, #7b2ff7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+        .probability-bar { background: rgba(255,255,255,0.04); border-radius: 100px; height: 6px; margin: 10px 0; overflow: hidden; }
+        .probability-fill { height: 100%; border-radius: 100px; transition: width 1s cubic-bezier(0.4,0,0.2,1); }
+        .prob-label { display: flex; justify-content: space-between; font-size: 0.7rem; color: #2a2a3a; text-transform: uppercase; }
+        .metric-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .metric-row:last-of-type { border-bottom: none; }
+        .metric-label { color: #444; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; }
+        .metric-value { color: #c0c0c0; font-weight: 600; font-size: 0.9rem; }
+        .explanation-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: #333; margin: 24px 0 12px; display: flex; align-items: center; gap: 8px; }
+        .explanation-label::after { content: ''; flex: 1; height: 1px; background: #111; }
+        .explanation-box { background: rgba(0,0,0,0.4); border-left: 2px solid #7b2ff7; padding: 16px 20px; border-radius: 0 8px 8px 0; font-size: 0.88rem; line-height: 1.8; color: #888; font-style: italic; }
+        .loading { display: none; text-align: center; padding: 24px; color: #333; font-size: 0.75rem; letter-spacing: 3px; text-transform: uppercase; }
+        .loading::before { content: ''; display: block; width: 24px; height: 24px; border: 2px solid #1a1a2e; border-top-color: #00d4ff; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .powered-by { text-align: center; margin-top: 20px; font-size: 0.65rem; color: #222; letter-spacing: 2px; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>VIBEX</h1>
+            <p>AI Predictive Maintenance Platform</p>
+            <div class="tagline">Random Forest · Qwen2.5 · VibeOps MLOps</div>
+        </div>
+        <div class="card">
+            <h2>Sensor Readings</h2>
+            <div class="grid">
+                <div class="input-group">
+                    <label>Air Temperature</label>
+                    <input type="number" id="air_temp" value="298.1" step="0.1">
+                    <span>Kelvin (K)</span>
+                </div>
+                <div class="input-group">
+                    <label>Process Temperature</label>
+                    <input type="number" id="proc_temp" value="308.6" step="0.1">
+                    <span>Kelvin (K)</span>
+                </div>
+                <div class="input-group">
+                    <label>Rotation Speed</label>
+                    <input type="number" id="rotation" value="1551" step="1">
+                    <span>RPM (Revolutions Per Minute)</span>
+                </div>
+                <div class="input-group">
+                    <label>Torque</label>
+                    <input type="number" id="torque" value="42.8" step="0.1">
+                    <span>Nm (Newton Meters)</span>
+                </div>
+                <div class="input-group" style="grid-column: 1 / -1">
+                    <label>Tool Wear</label>
+                    <input type="number" id="tool_wear" value="0" step="1">
+                    <span>Minutes</span>
+                </div>
+            </div>
+            <button class="btn" onclick="analyze()" id="analyzeBtn">Analyze Machine</button>
+        </div>
+        <div class="loading" id="loading">Running VibeX · Generating AI Explanation</div>
+        <div class="card result" id="result">
+            <h2>Analysis Result</h2>
+            <div id="statusBadge"></div>
+            <div class="prob-number" id="probValue">0%</div>
+            <div class="probability-bar">
+                <div class="probability-fill" id="probBar" style="width:0%"></div>
+            </div>
+            <div class="prob-label"><span>Safe Zone</span><span>Failure Risk</span></div>
+            <div class="metric-row">
+                <span class="metric-label">Status</span>
+                <span class="metric-value" id="predValue"></span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Model</span>
+                <span class="metric-value">VibeX · Random Forest</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Explanation Engine</span>
+                <span class="metric-value">Qwen2.5-1.5B (Local LLM (Large Language Model))</span>
+            </div>
+            <div class="explanation-label">AI Explanation</div>
+            <div class="explanation-box" id="explanation"></div>
+        </div>
+        <div class="powered-by">VibeX v2.0 · Built on VibeOps MLOps Platform</div>
+    </div>
+    <script>
+        async function analyze() {
+            const btn = document.getElementById('analyzeBtn');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            btn.disabled = true;
+            loading.style.display = 'block';
+            result.style.display = 'none';
+            const data = {
+                air_temperature: parseFloat(document.getElementById('air_temp').value),
+                process_temperature: parseFloat(document.getElementById('proc_temp').value),
+                rotation: parseFloat(document.getElementById('rotation').value),
+                torque: parseFloat(document.getElementById('torque').value),
+                tool_wear: parseFloat(document.getElementById('tool_wear').value)
+            };
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const res = await response.json();
+                const prob = (res.failure_probability * 100).toFixed(2);
+                const isFail = res.prediction === 1;
+                document.getElementById('statusBadge').innerHTML = `
+                    <div class="status-badge ${isFail ? 'status-fail' : 'status-ok'}">
+                        ${isFail ? '⚠ FAILURE IMMINENT' : '✓ MACHINE OK'}
+                    </div>`;
+                document.getElementById('probValue').textContent = prob + '%';
+                document.getElementById('predValue').textContent = isFail ? 'Machine failure predicted' : 'Machine operating normally';
+                const bar = document.getElementById('probBar');
+                bar.style.width = prob + '%';
+                bar.style.background = isFail
+                    ? 'linear-gradient(90deg, #ff6b6b, #ff3232)'
+                    : 'linear-gradient(90deg, #00ff88, #00d4ff)';
+                document.getElementById('explanation').textContent = res.explanation || 'No explanation available';
+                result.style.display = 'block';
+            } catch(e) {
+                alert('Error connecting to VibeX API');
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
