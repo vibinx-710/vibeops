@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vibeops
+  labels:
+    app: vibeops
+    environment: development
