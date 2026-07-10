@@ -4,6 +4,7 @@ metadata:
   name: mlflow-pvc
   namespace: vibeops
 spec:
+  storageClassName: gp2
   accessModes:
     - ReadWriteOnce
   resources:

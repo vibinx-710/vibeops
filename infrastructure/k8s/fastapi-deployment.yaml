@@ -17,8 +17,8 @@ spec:
     spec:
       containers:
       - name: fastapi
-        image: vibeops-fastapi:latest
-        imagePullPolicy: Never
+        image: 984211233261.dkr.ecr.ap-south-1.amazonaws.com/vibeops-fastapi:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8000
         env:
