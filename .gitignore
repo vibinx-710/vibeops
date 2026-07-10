@@ -27,3 +27,11 @@ airflow.cfg
 *.tfvars
 model.pkl
 inspect_model.py
+*.zip
+*.tar.gz
+aws/
+.terraform/
+*.tfstate
+*.tfstate.backup
+__pycache__/
+*.pyc
